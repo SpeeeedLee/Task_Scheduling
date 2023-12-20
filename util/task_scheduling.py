@@ -324,6 +324,6 @@ class task_scheduler:
             # Save the Plot
             if save_file_name is not None:
                 plt.savefig(f'./{save_file_name}.png')
-            plt.show()
+            # plt.show()
         else:
             raise ValueError("只能對Feasible Solution 使用 plot_save_Gantt_chart")

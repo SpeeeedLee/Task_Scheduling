@@ -1,9 +1,24 @@
 import random
 import numpy as np 
+import itertools
 from util.task_scheduling import task_scheduler
 
-class SA_operator():
-    def __init__(self, num_computers, num_task, total_round, my_DAG, mutation_prob, mapping_dict, mutate_order_portion, start_Temp):
+
+'''
+"Tabu" in three ways:
+1. Mutation Operation using Mutation_Order (Tabu Tenure = 10)
+2. Psuedo Parent in Order Mutation (Tabu Tenure = 20) 
+
+This means that if Mutation_Order is used, then ban it for 10 operations
+And also, when the next time Mutation_Order is availabel and used, need to use completely different psudeo parents to cross over with
+(All possible number of psuedo parents is 4! = 24, so we set the Tabu Tenure a little lower than 24)
+
+3. Accept first mutation solution (i.e. no while loop to find feasible-solution only) (Tabu Tenure = 6)
+   * Can not record that solution's time and fitness if it is not feasible
+'''
+
+class TS_operator():
+    def __init__(self, num_computers, num_task, total_round, my_DAG, mutation_prob, mapping_dict, mutate_order_portion, Tenure_mutation_order, Tabu_Tenure_job_order):
         self.num_computers = num_computers
         self.num_task = num_task
         self.my_DAG = my_DAG
@@ -11,20 +26,12 @@ class SA_operator():
         self.mutate_order_portion = mutate_order_portion
         self.total_round = total_round
         self.mapping_dict = mapping_dict
-        self.start_Temp = start_Temp
-
-    def get_Temp_Linear(self, curr_round):
-        '''
-        To decide the hyperparameter start_Temp, one can reference on the following :
-            exp(-1) = 0.368
-        
-        One can ask "how much (dealta E) in the first iteration do I want so that it will be accepted by prob = 0.368 ?"
-        --> My ans for this is 0.7
-        '''
-
-        cuur_Temp = self.start_Temp * (1 - (curr_round /self.total_round))
-
-        return cuur_Temp
+        self.Tenure_mutation_order = Tenure_mutation_order
+        self.Mutaion_operator_used = False
+        self.current_round = 0
+        self.last_time_order_mutation = 0
+        self.Tabu_job_order = []
+        self.Tabu_Tenure_job_order = Tabu_Tenure_job_order
     
     def feasible_initial_chrom(self):
         '''
@@ -39,8 +46,20 @@ class SA_operator():
             _, _, _, _, check_feasible, time, fitness = my_task_scheduler.caculate_fitness()
             if check_feasible == True:
                 return chromosome_list, time, fitness
-    
-    def create_pseudo_parent(slef, chrom):
+
+
+    def create_pseudo_parent_W_Tabu(self,chrom):
+        
+        if len(self.Tabu_job_order) > self.Tabu_Tenure_job_order:
+            self.Tabu_job_order.pop()
+        
+        all_permutations = list(itertools.permutations(range(1, self.num_computers)))
+        random.shuffle(all_permutations)
+
+        for permutation in all_permutations:
+            if permutation not in self.Tabu_job_order:
+                job_ids = permutation
+                break
         jobs = {}
         for task in chrom[1:]:  
             job_id = task // 10
@@ -50,13 +69,12 @@ class SA_operator():
 
         for job_id in jobs:
             jobs[job_id].sort()
-
-        job_ids = list(jobs.keys())
-        random.shuffle(job_ids)
         pseudo_parent = [77]  
         for job_id in job_ids:
             pseudo_parent.extend(jobs[job_id])
 
+        self.Tabu_job_order.append(job_ids)
+         
         return pseudo_parent
 
     def mutation_order(self, chrom):
@@ -64,7 +82,7 @@ class SA_operator():
         Leave the left part unchanged, 
         Crossover the right part with a psuedo parent
         '''
-        pseudo_parent = self.create_pseudo_parent(chrom[self.num_task:])
+        pseudo_parent = self.create_pseudo_parent_W_Tabu(chrom[self.num_task:])
         pseudo_parent_chrom = [0]*self.num_task + pseudo_parent
 
         cross_over_point = random.randint(15, 2 * self.num_task - 2) # 15 到 24 的整數，表示 mutated_chrom 想留chrom左邊數來多少個數
@@ -88,9 +106,15 @@ class SA_operator():
                 mutated_chrom[task_order] = change_computer_id
         return mutated_chrom
 
+    def Tabu_mutaion_order(self, used = False):
+        if used:
+            self.last_time_order_mutation = self.current_round
+        if self.last_time_order_mutation + self.Tenure_mutation_order < self.current_round:
+            return True
+        else:
+            return False
 
-
-    def Simulated_Annealing_loop(self):
+    def Tabu_Search_loop(self):
         # record every round
         best_chrom_list = []
         best_time_list = []
@@ -106,20 +130,27 @@ class SA_operator():
         best_fitness_list.append(best_fitness)
 
         for round in range(self.total_round):
-            print(f"SA : Start the {round + 1} iteration")
-            
+            print(f"TS : Start the {round + 1} iteration")
+            self.current_round += 1
             # Mutated !
             Found_feasible_nieghbor = False
             while(Found_feasible_nieghbor == False):
-                random_number = random.random()
-                '''(1-20%)*mutate_order_portion do mutate order, (1-20%)*(1-mutate_order_portion) do mutate computer, 20% do the both'''
-                if random_number < 0.8*self.mutate_order_portion:
+                Mutation_order_ban = self.Tabu_mutaion_order()
+                if Mutation_order_ban == True:
+                    # can only do mutaion_computer !
                     mutated_chrom = self.mutation_order(curr_chrom)
-                elif 0.8*self.mutate_order_portion <= random_number < 0.8:
-                    mutated_chrom = self.mutation_computer(curr_chrom)
                 else:
-                    mutated_chrom = self.mutation_order(curr_chrom)
-                    mutated_chrom = self.mutation_computer(curr_chrom)
+                    random_number = random.random()
+                    '''(1-20%)*mutate_order_portion do mutate order, (1-20%)*(1-mutate_order_portion) do mutate computer, 20% do the both'''
+                    if random_number < 0.8*self.mutate_order_portion:
+                        mutated_chrom = self.mutation_order(curr_chrom)
+                        self.Tabu_mutaion_order(True)
+                    elif 0.8*self.mutate_order_portion <= random_number < 0.8:
+                        mutated_chrom = self.mutation_computer(curr_chrom)
+                    else:
+                        mutated_chrom = self.mutation_order(curr_chrom)
+                        mutated_chrom = self.mutation_computer(curr_chrom)
+                        self.Tabu_mutaion_order(True)
 
                 # Check if feasible
                 task_scheduler_ = task_scheduler(mutated_chrom, self.my_DAG, self.num_task,  self.num_computers, self.mapping_dict)
@@ -128,26 +159,20 @@ class SA_operator():
                 if check_feasible == True:
                     Found_feasible_nieghbor = True
             
-            # Check if the time of the mutated chrom is smaller than curr_chrom
-            if mutated_fitness > curr_fitness:
-                curr_chrom = mutated_chrom
-                curr_time = mutated_time
-                curr_fitness = mutated_fitness
-                if mutated_fitness > best_fitness:
-                    best_chrom = mutated_chrom
-                    best_time = mutated_time
-                    best_fitness = mutated_fitness
-            else:
-                # accept the worse chromosome with probability
-                dealta_E = curr_fitness - mutated_fitness
-                curr_Temp = self.get_Temp_Linear(round)
-                random_number = random.random()
-                if (np.exp(-(dealta_E) / curr_Temp) > random_number):
-                    curr_chrom = mutated_chrom
-                    curr_time = mutated_time
-                    curr_fitness = mutated_fitness
+            # Check if the time of the mutated chrom is smaller than best_chrom
+            if mutated_fitness > best_fitness:
+                best_chrom = mutated_chrom
+                best_time = mutated_time
+                best_fitness = mutated_fitness
+                            
             best_chrom_list.append(best_chrom)
             best_time_list.append(best_time)
             best_fitness_list.append(best_fitness)
         
+            # Starts from the mutated solution in the next round !
+            curr_chrom = mutated_chrom
+            curr_time = mutated_time
+            curr_fitness = mutated_fitness
+
         return  best_time_list, best_chrom_list
+
