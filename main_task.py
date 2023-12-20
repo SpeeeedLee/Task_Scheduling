@@ -1,40 +1,7 @@
-'''
-This is where one want to run the code
-
-1. Create a Task Table, Delay Matrix
-2. Generate DAG (from Task Table, Delay Matrix)
-3. Generate random initial population that statisfy topology structue of DAG
-4. Evaluation(using DAG)  --> Tournament Selection/ Roulette Wheel Selection
-5. Crossover & Mutation
-6. Back to step 4.
-'''
-
-
-
-'''
-For every Computer, we will have below dict:
-    RT --> Ready Time of the computer 
-        example : {1: 10, 2:3, ....}
-
-
-For all tasks, we will have below Dict:
-    ST --> Start Time for different tasks
-        {(i, j) = starting time, ......}
-        ex:
-        {(1,1) = 2, (1,2,1) = 6....}
-    FT --> Start Time for different tasks
-        {(i, j) = finish time, ......}
-        ex:
-        {(1,1) = 2, (1,2,1) = 6....}
-
-'''
-
-
-
-
 import numpy as np 
 from util.task_scheduling import task_scheduler
 from util.GA import GA_operator
+from util.SA import SA_operator
 from util.input_to_DAG import my_DAG
 
 
@@ -50,27 +17,63 @@ mapping_dict =  {77: 0,
                         31: 7, 32: 8, 33: 9, 34: 10,
                         41: 11, 42: 12}  # task_id to chromosome location for computer_id
 
-
-
-# Generate random initail generation
+'''<============================================= Genetic Algorithm =================================================>'''
+'''
+# Setting some Hyperparemeters
 population_size = 10
 total_round = 3000
-my_GA_operator = GA_operator(num_computers, num_task, population_size, total_round, my_DAG, 0.25, mapping_dict)
+mutation_prob = 0.2
 
-shortest_time_in_rounds_list, shortest_time_found_list, best_solution_found_list = my_GA_operator.Genetic_Algorithm_loop()
+# Instantiate the GA operator
+my_GA_operator = GA_operator(num_computers, num_task, population_size, total_round, my_DAG, mutation_prob, mapping_dict)
 
-
-#print(shortest_time_found_list[-1])
-#print(best_solution_found_list[-1])
-
-
+GA_shortest_time_in_rounds_list, GA_shortest_time_found_list, GA_best_solution_found_list = my_GA_operator.Genetic_Algorithm_loop()
 
 # Save the best result found !
-chrom = [2, 0, 2, 2, 1, 1, 0, 3, 3, 3, 3, 2, 4, 77, 21, 31, 41, 22, 42, 11, 12, 13, 32, 33, 34, 23]
-task_schedule_1 = task_scheduler(chrom, my_DAG, num_task,  num_computers, mapping_dict)
+GA_best_solution_found = GA_best_solution_found_list[-1]
+print(f"Best Solution Found : {GA_best_solution_found}")
+task_schedule_1 = task_scheduler(GA_best_solution_found, my_DAG, num_task,  num_computers, mapping_dict)
 task_schedule_1.caculate_fitness()
 task_schedule_1.get_Gantt_chart_element()
-task_schedule_1.plot_save_Gantt_chart('./figure/main_task/time_18')
+task_schedule_1.plot_save_Gantt_chart('./figure/main_task/GA.png')
+
+'''
+
+
+'''<============================================= Simulated Annealing =================================================>'''
+# Setting some Hyperparemeters
+total_round = 30000
+mutation_prob = 0.2
+mutate_order_portion = 0.08
+start_Temp = 0.7
+
+
+# Instantiate the SA operator
+my_SA_operator = SA_operator(num_computers, num_task, total_round, my_DAG, mutation_prob, mapping_dict, mutate_order_portion, start_Temp)
+SA_shortest_time_found_list, SA_best_solution_found_list= my_SA_operator.Simulated_Annealing_loop()
+
+# Save the best result found !
+SA_best_solution_found = SA_best_solution_found_list[-1]
+print(f"Best Solution Found : {SA_best_solution_found}")
+task_schedule_1 = task_scheduler(SA_best_solution_found, my_DAG, num_task,  num_computers, mapping_dict)
+task_schedule_1.caculate_fitness()
+task_schedule_1.get_Gantt_chart_element()
+task_schedule_1.plot_save_Gantt_chart('./figure/main_task/SA.png')
+
+
+
+'''<========================================= Particle Swarm Optimization ============================================>'''
+
+
+
+
+
+
+
+
+
+'''<=========================================  Plot the Progress Diagram  ============================================>'''
+
 '''
 feasible_initial_solution = my_GA_operator.feasible_initial_generation()
 print(feasible_initial_solution)

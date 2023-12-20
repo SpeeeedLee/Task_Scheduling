@@ -140,17 +140,20 @@ class GA_operator():
                 parent_chorm_1, parent_chorm_2 = self.Roulette_wheel_selection(fitness_list)
             
                 # Use these two parents to perform crossover
-                '''40% do the order crossover, 40% do the one point crossover, 20% do the both'''
+                '''40% do the order crossover, 40% do the one point crossover, 10% do the both, 10% do nothing'''
                 random_crossover = random.uniform(0, 1)
                 if random_crossover < 0.4:
                     chrom_child_1, chrom_child_2 = self.order_cross_over(parent_chorm_1, parent_chorm_2)
                     
                 elif 0.4 <= random_crossover <= 0.8:
                     chrom_child_1, chrom_child_2 = self.one_point_cross_over(parent_chorm_1, parent_chorm_2)
-                else:
+                elif 0.8 < random_crossover <= 0.9:
                     chrom_child_1, chrom_child_2 = self.order_cross_over(parent_chorm_1, parent_chorm_2)
                     chrom_child_1, chrom_child_2 = self.one_point_cross_over(chrom_child_1, chrom_child_2)
-
+                else:
+                    chrom_child_1 = parent_chorm_1
+                    chrom_child_2 = parent_chorm_2
+                    
                 # Mutation on the produced two children           
                 chrom_child_1_mutated = self.mutation(chrom_child_1)
                 chrom_child_2_mutated = self.mutation(chrom_child_2)
