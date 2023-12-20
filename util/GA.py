@@ -1,29 +1,10 @@
-'''
-Need to have
-1. def Generate_next_generation():
-    One_point_crossover / Order_crossover
-    Mutation
-
-2. def One_point_crossover():
-
-3. def Order_crossover():
-
-4. def Mutation():
-
-5. def Tournament_selection
-
-6. def Roulette_wheel_selection
-
-
-'''
-
 import random
 import numpy as np 
 from util.task_scheduling import task_scheduler
 
 class GA_operator():
 
-    def __init__(self, num_computers, num_task, population_size, total_round, my_DAG, mutation_prob):
+    def __init__(self, num_computers, num_task, population_size, total_round, my_DAG, mutation_prob, mapping_dict):
         self.num_computers = num_computers
         self.num_task = num_task
         self.my_DAG = my_DAG
@@ -32,6 +13,7 @@ class GA_operator():
         self.mutation_prob = mutation_prob
         self.initial_generation = []
         self.current_generation = []
+        self.mapping_dict = mapping_dict
         
 
     def ramdom_initial_generation(self):
@@ -60,7 +42,7 @@ class GA_operator():
             mapping_part = [random.randint(0, self.num_computers - 1) for _ in range(self.num_task)]
             scheduling_part = self.my_DAG.random_topological_sort()
             chromosome_list = mapping_part + scheduling_part
-            my_task_scheduler = task_scheduler(chromosome_list, self.my_DAG, self.num_task,  self.num_computers)
+            my_task_scheduler = task_scheduler(chromosome_list, self.my_DAG, self.num_task,  self.num_computers, self.mapping_dict)
             _, _, _, _, check_feasible, _, _ = my_task_scheduler.caculate_fitness()
             if check_feasible == True:
                 initial_generation.append(chromosome_list)
@@ -118,6 +100,7 @@ class GA_operator():
     
     def Genetic_Algorithm_loop(self):
         self.initial_generation = self.feasible_initial_generation()
+        # self.inital_generation = self.ramdom_initial_generation()
         self.current_generation = self.initial_generation
         
         shortest_time_found_list = []     # recording overall shoertest time so far
@@ -132,7 +115,7 @@ class GA_operator():
         fitness_list = []
         shortest_time_in_round = np.inf
         for chrom in self.current_generation:
-                scheduler = task_scheduler(chrom, self.my_DAG, self.num_task, self.num_computers)
+                scheduler = task_scheduler(chrom, self.my_DAG, self.num_task, self.num_computers, self.mapping_dict)
                 _, _, _, _, feasible, time, fitness = scheduler.caculate_fitness()
                 if time < shortest_time_in_round:
                     shortest_time_in_round = time
@@ -173,10 +156,10 @@ class GA_operator():
                 chrom_child_2_mutated = self.mutation(chrom_child_2)
 
                 # check whether the two child is feasible
-                scheduler_for_child_1 = task_scheduler(chrom_child_1_mutated, self.my_DAG, self.num_task, self.num_computers)
+                scheduler_for_child_1 = task_scheduler(chrom_child_1_mutated, self.my_DAG, self.num_task, self.num_computers, self.mapping_dict)
                 _, _, _, _, feasible_child_1, _, _ = scheduler_for_child_1.caculate_fitness()
                 
-                scheduler_for_child_2 = task_scheduler(chrom_child_2_mutated, self.my_DAG, self.num_task, self.num_computers)
+                scheduler_for_child_2 = task_scheduler(chrom_child_2_mutated, self.my_DAG, self.num_task, self.num_computers, self.mapping_dict)
                 _, _, _, _, feasible_child_2, _, _ = scheduler_for_child_2.caculate_fitness()
 
                 # Append the feasible mutated children to the next generation 
@@ -205,7 +188,7 @@ class GA_operator():
             fitness_list = []
             shortest_time_in_round = np.inf
             for chrom in self.current_generation:
-                    scheduler = task_scheduler(chrom, self.my_DAG, self.num_task, self.num_computers)
+                    scheduler = task_scheduler(chrom, self.my_DAG, self.num_task, self.num_computers, self.mapping_dict)
                     _, _, _, _, feasible, time, fitness = scheduler.caculate_fitness()
                     #chrom_list.append(chrom)
                     if time < shortest_time_in_round:

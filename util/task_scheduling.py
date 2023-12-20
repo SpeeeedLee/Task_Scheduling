@@ -6,7 +6,7 @@ import math
 
 
 class task_scheduler:
-    def __init__(self, chromosome, my_DAG, num_task,  num_computers):
+    def __init__(self, chromosome, my_DAG, num_task,  num_computers, mapping_dict):
         self.chromosome = chromosome
         self.my_DAG = my_DAG
         self.num_task = num_task
@@ -26,12 +26,7 @@ class task_scheduler:
         self.set_up_dict = {}
         self.transfer_dict = {}
 
-        self.mapping_dict =  {77: 0,
-                        11: 1, 12: 2, 13: 3,
-                        21: 4, 22: 5, 23: 6,
-                        31: 7, 32: 8, 33: 9, 34: 10,
-                        41: 11, 42: 12} # task_id to chromosome location for computer_id
-
+        self.mapping_dict = mapping_dict 
 
     def transfer_chromosome_to_CRO(self):
         '''
@@ -296,7 +291,7 @@ class task_scheduler:
             ax.set_xlabel('Time (s)')
             ax.set_ylabel('Computer ID')
             ax.set_yticks(range(len(data_1)))
-            ax.set_yticklabels(['Computer {}'.format(i) for i in range(len(data_1))])
+            ax.set_yticklabels(['Computer {}'.format(i+1) for i in range(len(data_1))])
             ax.set_title('Gantt Chart of Tasks on Computers')
 
             # 创建图例

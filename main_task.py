@@ -27,29 +27,50 @@ For all tasks, we will have below Dict:
         ex:
         {(1,1) = 2, (1,2,1) = 6....}
 
-
 '''
+
+
+
+
 import numpy as np 
 from util.task_scheduling import task_scheduler
 from util.GA import GA_operator
-from util.input_2_DAG import my_DAG, num_computers, num_task
+from util.input_to_DAG import my_DAG
+
+
+# Display
+my_DAG.display()
+
+num_computers = 5
+num_task = 12 + 1
+
+mapping_dict =  {77: 0,
+                        11: 1, 12: 2, 13: 3,
+                        21: 4, 22: 5, 23: 6,
+                        31: 7, 32: 8, 33: 9, 34: 10,
+                        41: 11, 42: 12}  # task_id to chromosome location for computer_id
+
+
 
 # Generate random initail generation
 population_size = 10
 total_round = 3000
-my_GA_operator = GA_operator(num_computers, num_task, population_size, total_round, my_DAG, 0.25)
+my_GA_operator = GA_operator(num_computers, num_task, population_size, total_round, my_DAG, 0.25, mapping_dict)
 
-#shortest_time_in_rounds_list, shortest_time_found_list, best_solution_found_list = my_GA_operator.Genetic_Algorithm_loop()
+shortest_time_in_rounds_list, shortest_time_found_list, best_solution_found_list = my_GA_operator.Genetic_Algorithm_loop()
 
 
 #print(shortest_time_found_list[-1])
 #print(best_solution_found_list[-1])
 
+
+
+# Save the best result found !
 chrom = [2, 0, 2, 2, 1, 1, 0, 3, 3, 3, 3, 2, 4, 77, 21, 31, 41, 22, 42, 11, 12, 13, 32, 33, 34, 23]
-task_schedule_1 = task_scheduler(chrom, my_DAG, num_task,  num_computers)
+task_schedule_1 = task_scheduler(chrom, my_DAG, num_task,  num_computers, mapping_dict)
 task_schedule_1.caculate_fitness()
 task_schedule_1.get_Gantt_chart_element()
-task_schedule_1.plot_save_Gantt_chart('./figure/time_18')
+task_schedule_1.plot_save_Gantt_chart('./figure/main_task/time_18')
 '''
 feasible_initial_solution = my_GA_operator.feasible_initial_generation()
 print(feasible_initial_solution)

@@ -14,11 +14,11 @@ import random
 
 class DAG:
     def __init__(self, delay_cost_matrix):
-        assert np.shape(delay_cost_matrix) == (5, 5), "Delay cost matrix must be a 5x5 numpy array"
+        #assert np.shape(delay_cost_matrix) == (5, 5), "Delay cost matrix must be a 5x5 numpy array"
         self.graph = {}
         self.node_weights = {}
         self.setup_costs = {}  # 存儲設置成本
-        self.delay_cost_matrix = delay_cost_matrix  # 固定的5x5延遲成本矩陣
+        self.delay_cost_matrix = delay_cost_matrix
 
     def add_setup_edge_cost(self, from_node, to_node, setup_cost):
         self.setup_costs[(from_node, to_node)] = setup_cost
